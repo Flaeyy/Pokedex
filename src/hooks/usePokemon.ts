@@ -10,7 +10,7 @@ export const usePokemon = () => {
   const fetchPokemon = async () => {
     try {
       setLoading(true);
-      const data = await getPokemonList(20);
+      const data = await getPokemonList(200);
       setPokemonList(data);
     } catch (err) {
       setError('Failed to fetch Pokemon');

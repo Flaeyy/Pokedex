@@ -7,15 +7,25 @@ import {
   ActivityIndicator,
   StatusBar,
 } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
 import { usePokemon } from '../hooks/usePokemon';
 import { PokemonCard } from '../components/PokemonCard';
 import { Pokemon } from '../types/pokemon';
+import { RootStackParamList } from '../navigation';
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const HomeScreen: React.FC = () => {
+  const navigation = useNavigation<NavigationProp>();
   const { pokemonList, loading, error } = usePokemon();
 
+  const handlePokemonPress = (pokemon: Pokemon) => {
+    navigation.navigate('Detail', { pokemonId: pokemon.id });
+  };
+
   const renderItem = ({ item }: { item: Pokemon }) => (
-    <PokemonCard pokemon={item} />
+    <PokemonCard pokemon={item} onPress={handlePokemonPress} />
   );
 
   if (loading) {
