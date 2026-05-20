@@ -14,34 +14,16 @@ import { getPokemonById } from '../services/pokeApi';
 import { StatBar } from '../components/StatBar';
 import { TypeBadge } from '../components/TypeBadge';
 import { RootStackParamList } from '../navigation';
+import { typeColors } from '../constants/typeColors';
+import { useFavoritesContext } from '../context/FavoritesContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Detail'>;
-
-const typeColors: Record<string, string> = {
-  fire: '#F08030',
-  water: '#6890F0',
-  grass: '#78C850',
-  electric: '#F8D030',
-  ice: '#98D8D8',
-  fighting: '#C03028',
-  poison: '#A040A0',
-  ground: '#E0C068',
-  flying: '#A890F0',
-  psychic: '#F85888',
-  bug: '#A8B820',
-  rock: '#B8A038',
-  ghost: '#705898',
-  dragon: '#7038F8',
-  dark: '#705848',
-  steel: '#B8B8D0',
-  fairy: '#EE99AC',
-  normal: '#A8A878',
-};
 
 export const DetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { pokemonId } = route.params;
   const [pokemon, setPokemon] = useState<Pokemon | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isFavorite, toggleFavorite } = useFavoritesContext();
 
   useEffect(() => {
     const fetchPokemon = async () => {
@@ -76,12 +58,21 @@ export const DetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const primaryType = pokemon.types[0]?.type.name || 'normal';
   const backgroundColor = typeColors[primaryType] || '#A8A878';
   const types = pokemon.types.map((t) => t.type.name);
+  const favorite = isFavorite(pokemon.id);
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backText}>← Back</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => toggleFavorite(pokemon.id)}
+          style={styles.favoriteButton}
+        >
+          <Text style={styles.favoriteIcon}>
+            {favorite ? '★' : '☆'}
+          </Text>
         </TouchableOpacity>
         <Text style={styles.id}>#{pokemon.id.toString().padStart(3, '0')}</Text>
         <Text style={styles.name}>
@@ -175,6 +166,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
+  },
+  favoriteButton: {
+    position: 'absolute',
+    right: 20,
+    top: 50,
+  },
+  favoriteIcon: {
+    fontSize: 28,
+    color: '#FFD700',
   },
   id: {
     fontSize: 16,

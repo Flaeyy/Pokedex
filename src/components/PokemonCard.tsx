@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Pokemon } from '../types/pokemon';
+import { typeColors } from '../constants/typeColors';
+import { useFavoritesContext } from '../context/FavoritesContext';
 
 interface PokemonCardProps {
   pokemon: Pokemon;
@@ -8,31 +10,14 @@ interface PokemonCardProps {
 }
 
 const getTypeColor = (type: string): string => {
-  const colors: Record<string, string> = {
-    fire: '#F08030',
-    water: '#6890F0',
-    grass: '#78C850',
-    electric: '#F8D030',
-    ice: '#98D8D8',
-    fighting: '#C03028',
-    poison: '#A040A0',
-    ground: '#E0C068',
-    flying: '#A890F0',
-    psychic: '#F85888',
-    bug: '#A8B820',
-    rock: '#B8A038',
-    ghost: '#705898',
-    dragon: '#7038F8',
-    dark: '#705848',
-    steel: '#B8B8D0',
-    fairy: '#EE99AC',
-  };
-  return colors[type] || '#A8A878';
+  return typeColors[type] || '#A8A878';
 };
 
 export const PokemonCard: React.FC<PokemonCardProps> = ({ pokemon, onPress }) => {
   const primaryType = pokemon.types[0]?.type.name || 'normal';
   const backgroundColor = getTypeColor(primaryType);
+  const { isFavorite, toggleFavorite } = useFavoritesContext();
+  const favorite = isFavorite(pokemon.id);
 
   return (
     <TouchableOpacity
@@ -40,6 +25,15 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({ pokemon, onPress }) =>
       onPress={() => onPress?.(pokemon)}
       activeOpacity={0.8}
     >
+      <TouchableOpacity
+        style={styles.favoriteButton}
+        onPress={() => toggleFavorite(pokemon.id)}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Text style={styles.favoriteIcon}>
+          {favorite ? '★' : '☆'}
+        </Text>
+      </TouchableOpacity>
       <Image
         source={{ uri: pokemon.sprites.other['official-artwork'].front_default || pokemon.sprites.front_default }}
         style={styles.image}
@@ -104,5 +98,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     textTransform: 'capitalize',
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 10,
+  },
+  favoriteIcon: {
+    fontSize: 20,
+    color: '#FFD700',
   },
 });
