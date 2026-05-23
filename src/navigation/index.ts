@@ -1,6 +1,7 @@
 export type RootStackParamList = {
-  Home: undefined;
+  Home: { startCompareWith?: number } | undefined;
   Detail: { pokemonId: number };
+  Compare: { pokemonId1: number; pokemonId2: number };
 };
 
 declare global {

@@ -7,13 +7,15 @@ import { useFavoritesContext } from '../context/FavoritesContext';
 interface PokemonCardProps {
   pokemon: Pokemon;
   onPress?: (pokemon: Pokemon) => void;
+  selected?: boolean;
+  compareMode?: boolean;
 }
 
 const getTypeColor = (type: string): string => {
   return typeColors[type] || '#A8A878';
 };
 
-export const PokemonCard: React.FC<PokemonCardProps> = ({ pokemon, onPress }) => {
+export const PokemonCard: React.FC<PokemonCardProps> = ({ pokemon, onPress, selected, compareMode }) => {
   const primaryType = pokemon.types[0]?.type.name || 'normal';
   const backgroundColor = getTypeColor(primaryType);
   const { isFavorite, toggleFavorite } = useFavoritesContext();
@@ -21,10 +23,19 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({ pokemon, onPress }) =>
 
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor }]}
+      style={[
+        styles.card,
+        { backgroundColor },
+        selected && styles.cardSelected,
+      ]}
       onPress={() => onPress?.(pokemon)}
       activeOpacity={0.8}
     >
+      {compareMode && (
+        <View style={[styles.checkCircle, selected && styles.checkCircleActive]}>
+          {selected && <Text style={styles.checkMark}>✓</Text>}
+        </View>
+      )}
       <TouchableOpacity
         style={styles.favoriteButton}
         onPress={() => toggleFavorite(pokemon.id)}
@@ -108,5 +119,33 @@ const styles = StyleSheet.create({
   favoriteIcon: {
     fontSize: 20,
     color: '#FFD700',
+  },
+  cardSelected: {
+    borderWidth: 3,
+    borderColor: '#FFD700',
+    transform: [{ scale: 0.96 }],
+  },
+  checkCircle: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    zIndex: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkCircleActive: {
+    backgroundColor: '#FFD700',
+    borderColor: '#FFD700',
+  },
+  checkMark: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: 'bold',
   },
 });

@@ -74,6 +74,14 @@ export const DetailScreen: React.FC<Props> = ({ route, navigation }) => {
             {favorite ? '★' : '☆'}
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            navigation.navigate('Home', { startCompareWith: pokemon.id });
+          }}
+          style={styles.compareButton}
+        >
+          <Text style={styles.compareIcon}>VS</Text>
+        </TouchableOpacity>
         <Text style={styles.id}>#{pokemon.id.toString().padStart(3, '0')}</Text>
         <Text style={styles.name}>
           {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
@@ -81,21 +89,27 @@ export const DetailScreen: React.FC<Props> = ({ route, navigation }) => {
         <TypeBadge types={types} />
       </View>
 
-      <ScrollView style={styles.content}>
-        <Image
-          source={{
-            uri: pokemon.sprites.other['official-artwork'].front_default ||
-                 pokemon.sprites.front_default,
-          }}
-          style={styles.image}
-          resizeMode="contain"
-        />
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.imageContainer}>
+          <Image
+            source={{
+              uri: pokemon.sprites.other['official-artwork'].front_default ||
+                   pokemon.sprites.front_default,
+            }}
+            style={styles.image}
+            resizeMode="contain"
+          />
+        </View>
 
         <View style={styles.infoRow}>
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Height</Text>
             <Text style={styles.infoValue}>{(pokemon.height / 10).toFixed(1)} m</Text>
           </View>
+          <View style={styles.infoDivider} />
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>Weight</Text>
             <Text style={styles.infoValue}>{(pokemon.weight / 10).toFixed(1)} kg</Text>
@@ -176,6 +190,22 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: '#FFD700',
   },
+  compareButton: {
+    position: 'absolute',
+    right: 60,
+    top: 50,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  compareIcon: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#fff',
+  },
   id: {
     fontSize: 16,
     color: 'rgba(255,255,255,0.8)',
@@ -190,19 +220,34 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     backgroundColor: '#fff',
-    paddingTop: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -10,
+    paddingTop: 10,
     paddingHorizontal: 20,
   },
+  imageContainer: {
+    alignItems: 'center',
+    marginTop: -80,
+    marginBottom: 8,
+  },
   image: {
-    width: 200,
-    height: 200,
-    alignSelf: 'center',
-    marginTop: 20,
+    width: 240,
+    height: 240,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginVertical: 20,
+    alignItems: 'center',
+    backgroundColor: '#f8f8f8',
+    borderRadius: 16,
+    paddingVertical: 16,
+    marginBottom: 20,
+  },
+  infoDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#ddd',
   },
   infoItem: {
     alignItems: 'center',

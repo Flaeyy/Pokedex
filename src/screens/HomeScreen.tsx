@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   FlatList,
@@ -9,9 +9,10 @@ import {
   StatusBar,
   TouchableOpacity,
   ScrollView,
+  Image,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { usePokemon } from '../hooks/usePokemon';
 import { PokemonCard } from '../components/PokemonCard';
 import { Pokemon } from '../types/pokemon';
@@ -20,15 +21,28 @@ import { typeColors, allTypes } from '../constants/typeColors';
 import { useFavoritesContext } from '../context/FavoritesContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type HomeRouteProp = RouteProp<RootStackParamList, 'Home'>;
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<HomeRouteProp>();
   const { pokemonList, loading, error, refetch } = usePokemon();
   const { favorites } = useFavoritesContext();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForCompare, setSelectedForCompare] = useState<number[]>([]);
+
+  useEffect(() => {
+    const preselected = route.params?.startCompareWith;
+    if (preselected) {
+      setCompareMode(true);
+      setSelectedForCompare([preselected]);
+      navigation.setParams({ startCompareWith: undefined });
+    }
+  }, [route.params?.startCompareWith]);
 
   const filteredPokemon = useMemo(() => {
     let result = pokemonList;
@@ -59,12 +73,45 @@ export const HomeScreen: React.FC = () => {
     );
   };
 
-  const handlePokemonPress = (pokemon: Pokemon) => {
-    navigation.navigate('Detail', { pokemonId: pokemon.id });
+  const handlePokemonPress = useCallback((pokemon: Pokemon) => {
+    if (compareMode) {
+      setSelectedForCompare((prev) => {
+        if (prev.includes(pokemon.id)) {
+          return prev.filter((id) => id !== pokemon.id);
+        }
+        if (prev.length >= 2) {
+          return [prev[1], pokemon.id];
+        }
+        return [...prev, pokemon.id];
+      });
+    } else {
+      navigation.navigate('Detail', { pokemonId: pokemon.id });
+    }
+  }, [compareMode, navigation]);
+
+  const toggleCompareMode = () => {
+    setCompareMode((prev) => !prev);
+    setSelectedForCompare([]);
+  };
+
+  const handleCompare = () => {
+    if (selectedForCompare.length === 2) {
+      navigation.navigate('Compare', {
+        pokemonId1: selectedForCompare[0],
+        pokemonId2: selectedForCompare[1],
+      });
+      setCompareMode(false);
+      setSelectedForCompare([]);
+    }
   };
 
   const renderItem = ({ item }: { item: Pokemon }) => (
-    <PokemonCard pokemon={item} onPress={handlePokemonPress} />
+    <PokemonCard
+      pokemon={item}
+      onPress={handlePokemonPress}
+      selected={selectedForCompare.includes(item.id)}
+      compareMode={compareMode}
+    />
   );
 
   if (loading) {
@@ -150,6 +197,16 @@ export const HomeScreen: React.FC = () => {
               {showFavoritesOnly ? '★' : '☆'}
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.compareToggle,
+              compareMode && styles.compareToggleActive,
+            ]}
+            onPress={toggleCompareMode}
+          >
+            <Text style={styles.compareToggleIcon}>VS</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -167,9 +224,70 @@ export const HomeScreen: React.FC = () => {
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
           numColumns={2}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[
+            styles.list,
+            compareMode && { paddingBottom: 100 },
+          ]}
           showsVerticalScrollIndicator={false}
         />
+      )}
+
+      {compareMode && selectedForCompare.length > 0 && (
+        <View style={styles.compareBar}>
+          {[0, 1].map((slot) => {
+            const id = selectedForCompare[slot];
+            const pokemon = id ? pokemonList.find((p) => p.id === id) : null;
+            return (
+              <View key={slot} style={styles.compareSlot}>
+                {pokemon ? (
+                  <View style={styles.compareSlotFilled}>
+                    <Image
+                      source={{
+                        uri:
+                          pokemon.sprites.other['official-artwork'].front_default ||
+                          pokemon.sprites.front_default,
+                      }}
+                      style={styles.compareSlotImage}
+                      resizeMode="contain"
+                    />
+                    <Text style={styles.compareSlotName} numberOfLines={1}>
+                      {pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() =>
+                        setSelectedForCompare((prev) => prev.filter((i) => i !== id))
+                      }
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.compareSlotRemove}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.compareSlotEmpty}>
+                    <Text style={styles.compareSlotPlaceholder}>?</Text>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+          <TouchableOpacity
+            style={[
+              styles.compareButton,
+              selectedForCompare.length < 2 && styles.compareButtonDisabled,
+            ]}
+            onPress={handleCompare}
+            disabled={selectedForCompare.length < 2}
+          >
+            <Text
+              style={[
+                styles.compareButtonText,
+                selectedForCompare.length < 2 && styles.compareButtonTextDisabled,
+              ]}
+            >
+              Compare
+            </Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
@@ -298,5 +416,104 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     textAlign: 'center',
+  },
+  compareToggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  compareToggleActive: {
+    backgroundColor: '#FF0000',
+  },
+  compareToggleIcon: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '900',
+  },
+  compareBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingBottom: 30,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    gap: 8,
+  },
+  compareSlot: {
+    flex: 1,
+    height: 56,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  compareSlotFilled: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    gap: 6,
+  },
+  compareSlotImage: {
+    width: 36,
+    height: 36,
+  },
+  compareSlotName: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#333',
+  },
+  compareSlotRemove: {
+    fontSize: 14,
+    color: '#999',
+    padding: 4,
+  },
+  compareSlotEmpty: {
+    flex: 1,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderStyle: 'dashed',
+  },
+  compareSlotPlaceholder: {
+    fontSize: 20,
+    color: '#ccc',
+    fontWeight: 'bold',
+  },
+  compareButton: {
+    backgroundColor: '#FF0000',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  compareButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  compareButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  compareButtonTextDisabled: {
+    color: '#999',
   },
 });
